@@ -148,12 +148,13 @@ def write_track(frames, ball_track, path_output_video, fps, trace=7):
         for i in range(trace):
             if (num-i > 0):
                 if ball_track[num-i][0]:
-                    # FIXME debug START
+                    # I am dividing the coordinates by two because empirically that's what fixes the
+                    # weird offset problem. See issue here:
+                    #   https://github.com/yastrebksv/TrackNet/issues/8#issue-2726709877
                     #x = int(ball_track[num-i][0])
                     #y = int(ball_track[num-i][1])
                     x = int(ball_track[num-i][0]) // 2
                     y = int(ball_track[num-i][1]) // 2
-                    # FIXME debug STOP
                     frame = cv2.circle(frame, (x,y), radius=3, color=(0, 255, 0), thickness=-1)
                 else:
                     break
