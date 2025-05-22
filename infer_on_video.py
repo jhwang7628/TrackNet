@@ -9,7 +9,7 @@ from itertools import groupby
 from scipy.spatial import distance
 
 def read_video(path_video):
-    """ Read video file    
+    """ Read video file
     :params
         path_video: path to video file
     :return
@@ -30,11 +30,11 @@ def read_video(path_video):
     return frames, fps
 
 def infer_model(frames, model):
-    """ Run pretrained model on a consecutive list of frames    
+    """ Run pretrained model on a consecutive list of frames
     :params
         frames: list of consecutive video frames
         model: pretrained model
-    :return    
+    :return
         ball_track: list of detected ball points
         dists: list of euclidean distances between two neighbouring ball points
     """
@@ -60,11 +60,11 @@ def infer_model(frames, model):
             dist = distance.euclidean(ball_track[-1], ball_track[-2])
         else:
             dist = -1
-        dists.append(dist)  
-    return ball_track, dists 
+        dists.append(dist)
+    return ball_track, dists
 
 def remove_outliers(ball_track, dists, max_dist = 100):
-    """ Remove outliers from model prediction    
+    """ Remove outliers from model prediction
     :params
         ball_track: list of detected ball points
         dists: list of euclidean distances between two neighbouring ball points
@@ -74,23 +74,23 @@ def remove_outliers(ball_track, dists, max_dist = 100):
     """
     outliers = list(np.where(np.array(dists) > max_dist)[0])
     for i in outliers:
-        if (dists[i+1] > max_dist) | (dists[i+1] == -1):       
+        if (dists[i+1] > max_dist) | (dists[i+1] == -1):
             ball_track[i] = (None, None)
             outliers.remove(i)
         elif dists[i-1] == -1:
             ball_track[i-1] = (None, None)
-    return ball_track  
+    return ball_track
 
 def split_track(ball_track, max_gap=4, max_dist_gap=80, min_track=5):
     """ Split ball track into several subtracks in each of which we will perform
-    ball interpolation.    
+    ball interpolation.
     :params
         ball_track: list of detected ball points
-        max_gap: maximun number of coherent None values for interpolation  
+        max_gap: maximun number of coherent None values for interpolation
         max_dist_gap: maximum distance at which neighboring points remain in one subtrack
-        min_track: minimum number of frames in each subtrack    
+        min_track: minimum number of frames in each subtrack
     :return
-        result: list of subtrack indexes    
+        result: list of subtrack indexes
     """
     list_det = [0 if x[0] else 1 for x in ball_track]
     groups = [(k, sum(1 for _ in g)) for k, g in groupby(list_det)]
@@ -104,16 +104,16 @@ def split_track(ball_track, max_gap=4, max_dist_gap=80, min_track=5):
             if (l >=max_gap) | (dist/l > max_dist_gap):
                 if cursor - min_value > min_track:
                     result.append([min_value, cursor])
-                    min_value = cursor + l - 1        
+                    min_value = cursor + l - 1
         cursor += l
-    if len(list_det) - min_value > min_track: 
-        result.append([min_value, len(list_det)]) 
-    return result    
+    if len(list_det) - min_value > min_track:
+        result.append([min_value, len(list_det)])
+    return result
 
 def interpolation(coords):
-    """ Run ball interpolation in one subtrack    
+    """ Run ball interpolation in one subtrack
     :params
-        coords: list of ball coordinates of one subtrack    
+        coords: list of ball coordinates of one subtrack
     :return
         track: list of interpolated ball coordinates of one subtrack
     """
@@ -141,23 +141,27 @@ def write_track(frames, ball_track, path_output_video, fps, trace=7):
         trace: number of frames with detected trace
     """
     height, width = frames[0].shape[:2]
-    out = cv2.VideoWriter(path_output_video, cv2.VideoWriter_fourcc(*'DIVX'), 
+    out = cv2.VideoWriter(path_output_video, cv2.VideoWriter_fourcc(*'DIVX'),
                           fps, (width, height))
     for num in range(len(frames)):
         frame = frames[num]
         for i in range(trace):
             if (num-i > 0):
                 if ball_track[num-i][0]:
-                    x = int(ball_track[num-i][0])
-                    y = int(ball_track[num-i][1])
-                    frame = cv2.circle(frame, (x,y), radius=0, color=(0, 0, 255), thickness=10-i)
+                    # FIXME debug START
+                    #x = int(ball_track[num-i][0])
+                    #y = int(ball_track[num-i][1])
+                    x = int(ball_track[num-i][0]) // 2
+                    y = int(ball_track[num-i][1]) // 2
+                    # FIXME debug STOP
+                    frame = cv2.circle(frame, (x,y), radius=3, color=(0, 255, 0), thickness=-1)
                 else:
                     break
-        out.write(frame) 
-    out.release()    
+        out.write(frame)
+    out.release()
 
 if __name__ == '__main__':
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', type=int, default=2, help='batch size')
     parser.add_argument('--model_path', type=str, help='path to model')
@@ -165,27 +169,27 @@ if __name__ == '__main__':
     parser.add_argument('--video_out_path', type=str, help='path to output video')
     parser.add_argument('--extrapolation', action='store_true', help='whether to use ball track extrapolation')
     args = parser.parse_args()
-    
+
     model = BallTrackerNet()
     device = 'cuda'
     model.load_state_dict(torch.load(args.model_path, map_location=device))
     model = model.to(device)
     model.eval()
-    
+
     frames, fps = read_video(args.video_path)
     ball_track, dists = infer_model(frames, model)
-    ball_track = remove_outliers(ball_track, dists)    
-    
+    ball_track = remove_outliers(ball_track, dists)
+
     if args.extrapolation:
         subtracks = split_track(ball_track)
         for r in subtracks:
             ball_subtrack = ball_track[r[0]:r[1]]
             ball_subtrack = interpolation(ball_subtrack)
             ball_track[r[0]:r[1]] = ball_subtrack
-        
-    write_track(frames, ball_track, args.video_out_path, fps)    
-    
-    
-    
-    
-    
+
+    write_track(frames, ball_track, args.video_out_path, fps, trace=1)
+
+
+
+
+
