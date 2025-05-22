@@ -51,7 +51,10 @@ https://drive.google.com/file/d/1XEYZ4myUN7QT-NeBYJI0xteLsvs-ZAOl/view?usp=shari
 
 ## Inference on video
 ![](pics/video_infer.gif)
-Run `python infer_on_video.py <args>` to launch inference on the video. 
+Run `python infer_on_video.py <args>` to launch inference on the video. An example command is:
+```
+python infer_on_video.py --batch_size=2 --model_path ./model_best.pt --video_path ~/tiss/soft_tennis/2.mp4 --video_out_path 2_annotated.mp4
+```
 
 ## Reference
 [https://arxiv.org/abs/1907.03698](https://arxiv.org/abs/1907.03698) <br>
