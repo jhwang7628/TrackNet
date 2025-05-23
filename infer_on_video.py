@@ -4,6 +4,8 @@ import cv2
 from general import postprocess
 from tqdm import tqdm
 import numpy as np
+from pathlib import Path
+import pandas as pd
 import argparse
 from itertools import groupby
 from scipy.spatial import distance
@@ -168,6 +170,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_path', type=str, help='path to model')
     parser.add_argument('--video_path', type=str, help='path to input video')
     parser.add_argument('--video_out_path', type=str, help='path to output video')
+    parser.add_argument('--csv_out_path', type=str, default=None, help='path to output ball track to csv')
     parser.add_argument('--extrapolation', action='store_true', help='whether to use ball track extrapolation')
     args = parser.parse_args()
 
@@ -190,7 +193,11 @@ if __name__ == '__main__':
 
     write_track(frames, ball_track, args.video_out_path, fps, trace=1)
 
-
-
-
-
+    if args.csv_out_path:
+        df_data = np.vstack(ball_track)
+        Path(args.csv_out_path).parent.mkdir(exist_ok=True, parents=True)
+        df = pd.DataFrame.from_dict({
+            "X": df_data[:,0],
+            "Y": df_data[:,1]
+        })
+        df.to_csv(args.csv_out_path, index=False)

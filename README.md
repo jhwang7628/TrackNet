@@ -53,7 +53,7 @@ You can check these weights
 ![](pics/video_infer.gif)
 Run `python infer_on_video.py <args>` to launch inference on the video. An example command is:
 ```
-python infer_on_video.py --batch_size=2 --model_path ./model_best.pt --video_path ~/tiss/soft_tennis/2.mp4 --video_out_path 2_annotated.mp4
+python infer_on_video.py --batch_size=2 --model_path ./model_best.pt --video_path ~/tiss/soft_tennis/2.mp4 --video_out_path 2_annotated.mp4 --csv_out_path 2_annotated.csv
 ```
 
 ## Reference
